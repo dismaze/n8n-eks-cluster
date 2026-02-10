@@ -1,7 +1,7 @@
 # General settings
-aws_region      = "eu-west-3"                    # AWS region (eu-west-3 = Paris)
-domain_name     = "yourdomain.com"               # Domain in AWS
-subdomain_name  = "n8n"                          # Subdomain (n8n.yourdomain.com)
+aws_region        = "eu-west-3"                  # AWS region (eu-west-3 = Paris)
+domain_name       = "yourdomain.com"             # Domain in AWS
+subdomain_name    = "n8n"                        # Subdomain (n8n.yourdomain.com)
 public_ip_address = "YOUR-PUBLIC-IP-ADDRESS"     # Your public IP
 
 # EKS Kubernetes cluster - Worker nodes
@@ -15,8 +15,9 @@ main_count   = 1  # Main n8n pods (UI/API)
 worker_count = 2  # Worker pods
 
 # PostgreSQL database
-username = "n8nadmin"  # Database username
-port     = "5432"      # PostgreSQL port
+username = "n8nadmin"                                                           # Database username
+port     = "5432"                                                               # PostgreSQL port
+db_ca_url = "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" # URL of the CA used to connect to the database
 
 # VPC & Networking
 cidr = "10.0.0.0/16"                            	# VPC CIDR range

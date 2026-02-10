@@ -136,14 +136,15 @@ nslookup n8n.mydomain.com
 2. **S3 backend not configured** - Terraform state stored locally, needs remote S3 backend with locking
 3. **EKS secrets encryption** - Not enabled, add KMS encryption for etcd secrets
 4. **Container resource limits** - Not set, add CPU/memory requests and limits
-5. **Database backups** - `skip_final_snapshot = true` loses data, set to `false` with 30-day retention
-6. **Redis persistence** - In-memory only, add PersistentVolumeClaim
-7. **Pod health checks** - Liveness/readiness probes not configured
-8. **Pod Disruption Budgets** - Not implemented, could be done
-9. **Cluster autoscaling** - Not implemented, could be done
-10. **EKS control plane logging** - Not implemented, could be done
-11. **RBAC/Network policies** - Not implemented, could be done
-12. **Monitoring/Alerting** - Not implemented, could be done
+5. **Database failover** - Set `multi_az = true` to enable multi-AZ
+6. **Database backups** - `skip_final_snapshot = true` loses data, set to `false` with 30-day retention
+7. **Redis persistence** - In-memory only, add PersistentVolumeClaim
+8. **Pod health checks** - Liveness/readiness probes not configured
+9. **Pod Disruption Budgets** - Not implemented, could be done
+10. **Cluster autoscaling** - Not implemented, could be done
+11. **EKS control plane logging** - Not implemented, could be done
+12. **RBAC/Network policies** - Not implemented, could be done
+13. **Monitoring/Alerting** - Not implemented, could be done
 
 ## 🔗 Related Resources
 

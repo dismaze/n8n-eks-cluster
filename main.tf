@@ -4,7 +4,7 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-      kubernetes = {
+    kubernetes = {
       source  = "hashicorp/kubernetes"
       version = "~> 3.0"
     }
@@ -28,7 +28,7 @@ provider "aws" {
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  
+
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
     args        = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
@@ -47,20 +47,20 @@ module "vpc" {
   version = "~> 5.0"
 
   name = "n8n-k8s-vpc"
-  cidr = "10.0.0.0/16"
+  cidr = var.cidr
 
-  azs = slice(data.aws_availability_zones.available.names, 0, 2) # Gets the first 2 zones from the list (e.g., eu-west-3a and eu-west-3b)
-  public_subnets   = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnets  = ["10.0.10.0/24", "10.0.11.0/24"]
-  database_subnets = ["10.0.20.0/24", "10.0.21.0/24"]
+  azs              = slice(data.aws_availability_zones.available.names, 0, 2) # Gets the first 2 zones from the list (e.g., eu-west-3a and eu-west-3b)
+  public_subnets   = var.public_subnets
+  private_subnets  = var.private_subnets
+  database_subnets = var.database_subnets
 
   # NAT Gateway Configuration
   enable_nat_gateway     = true
-  single_nat_gateway     = true
-  one_nat_gateway_per_az = false
+  single_nat_gateway     = true # Set to false for production
+  # one_nat_gateway_per_az = true # Uncomment for production
 
-  enable_dns_hostnames = true
-  create_database_subnet_group = true
+  enable_dns_hostnames               = true
+  create_database_subnet_group       = true
   create_database_subnet_route_table = true
 
   public_subnet_tags = {
@@ -68,7 +68,7 @@ module "vpc" {
   }
 
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = 1
+    "kubernetes.io/role/internal-elb"       = 1
     "kubernetes.io/cluster/n8n-eks-cluster" = "shared"
   }
 }
@@ -82,7 +82,7 @@ module "eks" {
   cluster_version = "1.35"
   vpc_id          = module.vpc.vpc_id
   subnet_ids      = module.vpc.private_subnets
-  
+
   enable_cluster_creator_admin_permissions = true
 
   cluster_endpoint_public_access  = true
@@ -95,9 +95,9 @@ module "eks" {
   eks_managed_node_groups = {
     main = {
       instance_types = var.instance_types
-      min_size     = var.min_size
-      max_size     = var.max_size
-      desired_size = var.desired_size
+      min_size       = var.min_size
+      max_size       = var.max_size
+      desired_size   = var.desired_size
     }
   }
 }
@@ -123,7 +123,7 @@ resource "kubernetes_secret_v1" "n8n_secrets" {
 
   data = {
     "DB_POSTGRESDB_PASSWORD" = data.aws_ssm_parameter.rds_password.value
-    "N8N_ENCRYPTION_KEY"     = data.aws_ssm_parameter.n8n_encryption_key.value 
+    "N8N_ENCRYPTION_KEY"     = data.aws_ssm_parameter.n8n_encryption_key.value
   }
 
   type = "Opaque"
@@ -134,13 +134,22 @@ module "db" {
   source  = "terraform-aws-modules/rds/aws"
   version = "~> 6.0"
 
-  identifier = "n8n-postgres"
-  engine     = "postgres"
-  family         = "postgres16"
-  engine_version = "16.11"
-  instance_class = "db.t3.micro"
-  allocated_storage = 20
+  identifier                  = "n8n-postgres"
+  engine                      = "postgres"
+  family                      = "postgres16"
+  engine_version              = "16.11"
+  instance_class              = "db.t3.micro"
+  allocated_storage           = 20
   manage_master_user_password = false
+
+  # Multi-AZ & Failover (disabled for testing, enable for production)
+  # multi_az = true
+
+  # Backups (disabled for testing, enable for production)
+  # backup_retention_period = 30
+  # backup_window           = "03:00-04:00"
+  # maintenance_window      = "mon:04:00-mon:05:00"
+  skip_final_snapshot     = true
 
   db_name  = local.db_name
   username = var.username
@@ -149,7 +158,6 @@ module "db" {
 
   vpc_security_group_ids = [module.db_sg.security_group_id]
   db_subnet_group_name   = module.vpc.database_subnet_group
-  skip_final_snapshot    = true
 }
 
 # Security Group
@@ -168,7 +176,7 @@ module "db_sg" {
 
 # 1. Download the Amazon RDS Global Bundle
 data "http" "rds_ca_bundle" {
-  url = "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem"
+  url = var.db_ca_url
 }
 
 # 2. Create the Kubernetes Secret using the downloaded content
@@ -403,23 +411,23 @@ resource "kubernetes_deployment_v1" "n8n_worker" {
 # Service exposing n8n
 resource "kubernetes_service_v1" "n8n_service" {
   metadata {
-    name = "n8n-service" 
+    name = "n8n-service"
     annotations = {
       # 1. Attach the ACM Certificate
       "service.beta.kubernetes.io/aws-load-balancer-ssl-cert" = aws_acm_certificate.n8n_cert.arn
-      
+
       # 2. Enable SSL for Port 443
       "service.beta.kubernetes.io/aws-load-balancer-ssl-ports" = "443"
-      
+
       # 3. Redirect from 80 to 443
       "service.beta.kubernetes.io/aws-load-balancer-ssl-redirect" = "443"
 
       # 4. Set the Health Check
-      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-check-interval" = "10"
-      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout"        = "5"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-check-interval"      = "10"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-timeout"             = "5"
       "service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold" = "3"
       "service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold"   = "2"
-      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-target" = "HTTP:5678/healthz"
+      "service.beta.kubernetes.io/aws-load-balancer-healthcheck-target"              = "HTTP:5678/healthz"
     }
   }
   spec {

@@ -90,6 +90,11 @@ variable "port" {
   default     = 5432
 }
 
+variable "db_ca_url" {
+  description = "URL of the CA used to connect to the database"
+  type        = string
+}
+
 variable "main_count" {
   description = "Number of main pods"
   type    = number
