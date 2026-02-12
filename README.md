@@ -79,8 +79,9 @@ main_count   = 1  # Main n8n pods (UI/API)
 worker_count = 2  # Worker pods
 
 # PostgreSQL database
-username = "n8nadmin"  # Database username
-port     = "5432"      # PostgreSQL port
+username = "n8nadmin"                                                           # Database username
+port     = "5432"                                                               # PostgreSQL port
+db_ca_url = "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" # URL of the CA used to connect to the database
 
 # VPC & Networking
 cidr = "10.0.0.0/16"                            	# VPC CIDR range
@@ -149,6 +150,7 @@ nslookup n8n.mydomain.com
 ## 🔗 Related Resources
 
 - [n8n Documentation](https://docs.n8n.io)
-- [AWS EKS Best Practices](https://docs.aws.amazon.com/eks/latest/best-practices/introduction.html)
 - [Terraform AWS Provider Documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+- [Terraform Kubernetes Provider Documentation](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs)
 - [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [AWS EKS Best Practices](https://docs.aws.amazon.com/eks/latest/best-practices/introduction.html)
